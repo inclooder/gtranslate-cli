@@ -29,17 +29,23 @@ class GoogleTranslateClient
 
 	def translate(text)
 		@browser.goto "https://translate.google.pl"
+		@browser.execute_script <<HERE_DOC
+		var hpsElem = document.querySelector('.hps');
+		if(hpsElem != null){
+			hpsElem.remove();
+		}
+HERE_DOC
 		@browser.execute_script "document.getElementById('source').value = '#{text}'"
 		@browser.execute_script "document.querySelector('#gt-submit').click()"
-		table_elem = @browser.element(:class => 'gt-baf-table')
+		table_elem = @browser.element(:class => 'hps')
 		table_elem.wait_until_present
-		html_table = @browser.execute_script "return document.querySelector('.gt-baf-table').outerHTML"
+		html_table = @browser.execute_script "return document.querySelector('#result_box').outerHTML"
 		puts self.parse_result_table(html_table)
 	end
 
 	def parse_result_table(html)
 		doc = Nokogiri::HTML(html)
-		return doc.css('div.gt-baf-word-clickable').text
+		return doc.css('span.hps').text
 	end
 
 	def destroy
@@ -54,14 +60,25 @@ class GoogleTranslateClient
 
 end
 
-
-gt = GoogleTranslateClient.new(:headless => true)
+def main_prog
+	begin
+		gt = GoogleTranslateClient.new(:headless => true)
+		gt.start
+		
+		print "gtranslate> "
+		while a = gets.chomp
+			gt.translate(a)
+			print "gtranslate> "
+		end
+	ensure
+		gt.destroy
+	end
+end
 
 begin
-	gt.start
+	main_prog
 rescue Exception => e
 	puts "Exception => #{e}"
 end
-	gt.translate(ARGV[0])
-	gt.destroy
+
 
