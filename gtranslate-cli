@@ -7,78 +7,78 @@ require 'nokogiri'
 
 class GoogleTranslateClient
 
-	def initialize(options = {})
-		@is_headless = options.fetch(:headless, false)
-		@browser_engine = options.fetch(:browser_engine, :firefox)
-	end
+  def initialize(options = {})
+    @is_headless = options.fetch(:headless, false)
+    @browser_engine = options.fetch(:browser_engine, :firefox)
+  end
 
-	def start
-		if @is_headless
-			begin
-				@headless_engine = Headless.new
-			rescue Headless::Exception => e
-				if e.message == 'Xvfb not found on your system'
-					puts e.message + ', try issuing the following command "sudo apt-get install xvfb"'
-				end
-				raise 'start failed'
-			end
-			@headless_engine.start
-		end
-		@browser = Watir::Browser.new :firefox
-	end
+  def start
+    if @is_headless
+      begin
+        @headless_engine = Headless.new
+      rescue Headless::Exception => e
+        if e.message == 'Xvfb not found on your system'
+          puts e.message + ', try issuing the following command "sudo apt-get install xvfb"'
+        end
+        raise 'start failed'
+      end
+      @headless_engine.start
+    end
+    @browser = Watir::Browser.new :firefox
+  end
 
-	def translate(text)
-		@browser.goto "https://translate.google.pl"
-		@browser.execute_script <<HERE_DOC
-		var hpsElem = document.querySelector('.hps');
-		if(hpsElem != null){
-			hpsElem.remove();
-		}
+  def translate(text)
+    @browser.goto "https://translate.google.pl"
+    @browser.execute_script <<HERE_DOC
+    var hpsElem = document.querySelector('.hps');
+    if(hpsElem != null){
+      hpsElem.remove();
+    }
 HERE_DOC
-		@browser.execute_script "document.getElementById('source').value = '#{text}'"
-		@browser.execute_script "document.querySelector('#gt-submit').click()"
-		table_elem = @browser.element(:class => 'hps')
-		table_elem.wait_until_present
-		html_table = @browser.execute_script "return document.querySelector('#result_box').outerHTML"
-		puts self.parse_result_table(html_table)
-	end
+    @browser.execute_script "document.getElementById('source').value = '#{text}'"
+    @browser.execute_script "document.querySelector('#gt-submit').click()"
+    table_elem = @browser.element(:class => 'hps')
+    table_elem.wait_until_present
+    html_table = @browser.execute_script "return document.querySelector('#result_box').outerHTML"
+    puts self.parse_result_table(html_table)
+  end
 
-	def parse_result_table(html)
-		doc = Nokogiri::HTML(html)
-		return doc.css('span.hps').text
-	end
+  def parse_result_table(html)
+    doc = Nokogiri::HTML(html)
+    return doc.css('span.hps').text
+  end
 
-	def destroy
-		if @is_headless
-			@headless_engine.destroy
-		end
-		begin
-			@browser.close
-		rescue
-		end
-	end
+  def destroy
+    if @is_headless
+      @headless_engine.destroy
+    end
+    begin
+      @browser.close
+    rescue
+    end
+  end
 
 end
 
 def main_prog
-	begin
-		gt = GoogleTranslateClient.new(:headless => true)
-		gt.start
-		
-		print "gtranslate> "
-		while a = gets.chomp
-			gt.translate(a)
-			print "gtranslate> "
-		end
-	ensure
-		gt.destroy
-	end
+  begin
+    gt = GoogleTranslateClient.new(:headless => true)
+    gt.start
+
+    print "gtranslate> "
+    while a = gets.chomp
+      gt.translate(a)
+      print "gtranslate> "
+    end
+  ensure
+    gt.destroy
+  end
 end
 
 begin
-	main_prog
+  main_prog
 rescue Exception => e
-	puts "Exception => #{e}"
+  puts "Exception => #{e}"
 end
 
 
