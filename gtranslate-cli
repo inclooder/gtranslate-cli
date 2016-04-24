@@ -29,15 +29,9 @@ class GoogleTranslateClient
 
   def translate(text)
     @browser.goto "https://translate.google.pl"
-    @browser.execute_script <<HERE_DOC
-    var hpsElem = document.querySelector('.hps');
-    if(hpsElem != null){
-      hpsElem.remove();
-    }
-HERE_DOC
     @browser.execute_script "document.getElementById('source').value = '#{text}'"
     @browser.execute_script "document.querySelector('#gt-submit').click()"
-    table_elem = @browser.element(:class => 'hps')
+    table_elem = @browser.element(:id => 'gt-lc')
     table_elem.wait_until_present
     html_table = @browser.execute_script "return document.querySelector('#result_box').outerHTML"
     puts self.parse_result_table(html_table)
@@ -45,7 +39,7 @@ HERE_DOC
 
   def parse_result_table(html)
     doc = Nokogiri::HTML(html)
-    return doc.css('span.hps').text
+    return doc.css('span span').text
   end
 
   def destroy
